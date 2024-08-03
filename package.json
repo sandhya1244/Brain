@@ -10,8 +10,25 @@
     "test": "jest"
   },
   "dependencies": {
-    "react": "18.2.0",
-    "react-native": "0.74.3"
+    "@react-native-community/datetimepicker": "^8.2.0",
+    "@react-native-community/slider": "^4.5.2",
+    "@react-three/drei": "^9.109.2",
+    "@react-three/fiber": "^8.16.8",
+    "expo": "^51.0.0",
+    "expo-asset": "^10.0.10",
+    "expo-gl": "~14.0.2",
+    "expo-sqlite": "~14.0.5",
+    "r3f-native-orbitcontrols": "^1.0.12",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-native": "0.74.3",
+    "react-native-gesture-handler": "^2.18.0",
+    "react-native-reanimated": "^3.14.0",
+    "react-native-sqlite-storage": "^6.0.1",
+    "react-native-ui-lib": "^7.27.0",
+    "react-native-url-polyfill": "^2.0.0",
+    "three": "^0.167.0",
+    "url-polyfill": "^1.1.12"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
