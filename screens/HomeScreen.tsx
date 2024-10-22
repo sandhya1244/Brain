@@ -9,18 +9,17 @@ import {
   ImageBackground,
   ScrollView,
   FlatList,
+  Linking,
+  Image,
 } from 'react-native';
 import {Canvas} from '@react-three/fiber';
 import useControls from 'r3f-native-orbitcontrols';
 import {ThreeEvent} from '@react-three/fiber';
 import Model from '../src/Models_m';
-import 'react-native-url-polyfill/auto';
-import Slider from '@react-native-community/slider';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {Picker} from '@react-native-picker/picker';
 import {createTable, insertData} from '../db';
-import LinearGradient from 'react-native-linear-gradient';
-
+import { WebView } from 'react-native-webview';
 
 
 
@@ -40,6 +39,7 @@ const HomeScreen = ({navigation}) => {
   const [OrbitControls, events] = useControls();
   const [visible, setVisible] = useState(false);
   const [glasgowModalVisible, setGlasgowModalVisible] = useState(false);
+  const [gcsInstructionModalVisible, setGcsInstructionModalVisible] = useState(false);
   const [coords, setCoords] = useState({x: 0, y: 0, z: 0});
   const [meshName, setMeshName] = useState('');
   const [injuryDate, setInjuryDate] = useState(new Date());
@@ -70,7 +70,7 @@ const HomeScreen = ({navigation}) => {
     } else if (x > 0) {
       return 'right';
     } else {
-      return 'center'; // Optional: Handle the case for X = 0
+      return 'center'; // Optional: Handle the case for X = 0n
     }
   };
 
@@ -214,7 +214,7 @@ const HomeScreen = ({navigation}) => {
    <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.instructionText}>
-          Please tap to locate brain injury
+          *Please tap to locate brain injury*
         </Text>
         <View style={styles.canvasContainer} {...events}>
           <Canvas style={styles.canvas} camera={{ position: [0, 0, 5] }}>
@@ -253,7 +253,7 @@ const HomeScreen = ({navigation}) => {
             onPress={handleCancel}
             style={styles.cancelButton}
           >
-            <Text style={styles.cancelButtonText}>✖ Cancel</Text>
+            <Text style={styles.cancelButtonText}>✖</Text>
           </TouchableOpacity>
           <Text style={styles.modalTitle}>Injury Details</Text>
 
@@ -389,9 +389,16 @@ const HomeScreen = ({navigation}) => {
               <TouchableOpacity
                 onPress={closeGlasgowCriteria}
                 style={styles.cancelButton}>
-                <Text style={styles.cancelButtonText}>Close</Text>
+                <Text style={styles.cancelButtonText}>✖</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Glasgow Coma Scale Criteria</Text>
+
+               {/* Instruction Button */}
+              <TouchableOpacity
+                onPress={() => setGcsInstructionModalVisible(true)}
+                style={styles.infoButton}>
+                <Text style={styles.infoButtonText}>ℹ️ Instructions</Text>
+              </TouchableOpacity>
 
               {/* Eye Response */}
               <Text style={styles.gcsSubtitle}>Eye Response (1-4):</Text>
@@ -451,8 +458,55 @@ const HomeScreen = ({navigation}) => {
                 <Text style={styles.calculateButtonText}>Total GCS</Text>
               </TouchableOpacity>
               <Text style={styles.modalText}>Total GCS: {totalGCS}</Text>
+              
+       {/* Instructions Modal */}
+        <Modal
+          transparent={true}
+          visible={gcsInstructionModalVisible}
+          onRequestClose={() => setGcsInstructionModalVisible(false)}>
+          <View style={styles.modalBackground}>
+            <View style={styles.modalBox}>
+              <TouchableOpacity
+                onPress={() => setGcsInstructionModalVisible(false)}
+                style={styles.cancelButton}>
+                <Text style={styles.cancelButtonText}>✖</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.modalTitle}>Glasgow Coma Scale Instructions</Text>
+
+              {/* Introduction */}
+              <Text style={styles.instructionText}>
+                The Glasgow Coma Scale (GCS) is a simple tool used by healthcare professionals to assess the level of consciousness in people who have had a head injury. It helps determine how severe the injury is. The GCS has three parts:
+              </Text>
+
+             
+
+              {/* YouTube Video Thumbnail */}
+              <Text style={styles.instructionText}>
+                For a video explanation, click on the thumbnail below:
+              </Text>
+              <TouchableOpacity onPress={() => Linking.openURL('https://www.youtube.com/watch?v=_BGMQDmwRmA')}>
+                <Image 
+                  source={{uri: 'https://img.youtube.com/vi/_BGMQDmwRmA/0.jpg'}} 
+                  style={styles.videoThumbnail} 
+                />
+              </TouchableOpacity>
+
+                  {/* Additional Resources */}
+            <Text style={styles.instructionText}>
+              For further reading, consider checking the following resources:
+            </Text>
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.ncbi.nlm.nih.gov/books/NBK459253/')}>
+              <Text style={styles.linkText}>- GCS Overview on NCBI</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.cdc.gov/traumaticbraininjury/guidelines.html')}>
+              <Text style={styles.linkText}>- CDC TBI Guidelines</Text>
+            </TouchableOpacity>
             </View>
           </View>
+        </Modal>
+        </View>
+        </View>
         </Modal>
 
             {/* Latest Injury Section */}
@@ -1021,6 +1075,47 @@ const styles = StyleSheet.create({
     color: '#4a4a4a', // Darker gray for secondary text
     marginBottom: 10, // Space below info text
     textAlign: 'center', // Center align for better readability
+  },
+
+  infoButton: {
+    backgroundColor: '#393e46',
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 10,
+  },
+  infoButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  gcsinstructionText: {
+    fontSize: 14,
+    marginVertical: 10,
+    textAlign: 'justify',
+  },
+  instructionSubtitle: {
+    fontWeight: 'bold',
+    marginVertical: 5,
+    fontSize: 16,
+  },
+
+  videoThumbnail: {
+    width: '100%',
+    height: 200,
+    marginTop: 15,
+    borderRadius: 10,
+  },
+  instructionDetail: {
+    fontSize: 14,
+    marginBottom: 10,
+    textAlign: 'justify',
+  },
+  linkText: {
+    color: '#fd7013', // Color of the link
+    textDecorationLine: 'underline', // Underline to indicate it's a link
+    marginVertical: 4, // Space above and below the link
+    fontSize: 16, // Adjust the font size as needed
+    // You can add additional styles like fontWeight or fontFamily if desired
   },
   
 });

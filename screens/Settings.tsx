@@ -78,9 +78,7 @@ const SettingsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Settings</Text>
-      </View>
+      
       <FlatList
         data={settingsOptions}
         renderItem={renderSection}
