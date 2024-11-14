@@ -15,7 +15,7 @@ const logoScreen: React.FC<{ onAnimationEnd: () => void }> = ({ onAnimationEnd }
         useNativeDriver: true,
       }),
       Animated.timing(scaleAnim, {
-        toValue: 1,
+        toValue: 0.9,
         duration: 5000,
         easing: Easing.ease,
         useNativeDriver: true,

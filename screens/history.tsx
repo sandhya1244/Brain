@@ -1,16 +1,58 @@
+import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, PermissionsAndroid, Platform, Linking } from 'react-native';
+import Share from 'react-native-share';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { retrieveData } from '../db';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import RNFS from 'react-native-fs';
-import { PermissionsAndroid } from 'react-native';
+import DocumentPicker from 'react-native-document-picker';
+import { openSettings } from 'react-native-permissions'; // Optional: to prompt users to open settings
+
+
+const requestStoragePermission = async () => {
+  if (Platform.OS === 'android') {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.MANAGE_EXTERNAL_STORAGE,
+      {
+        title: "Storage Permission",
+        message: "This app needs access to your storage to save files.",
+        buttonNeutral: "Ask Me Later",
+        buttonNegative: "Cancel",
+        buttonPositive: "OK",
+      },
+    );
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  }
+  return true; // Assume permission is granted for iOS
+};
+
 
 const HistoryScreen: React.FC = () => {
   const [historyData, setHistoryData] = useState([]);
   const [activeTab, setActiveTab] = useState('History');
   const navigation = useNavigation();
   const route = useRoute();
+
+  
+  
+const requestStoragePermission = async () => {
+  if (Platform.OS === 'android') {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.MANAGE_EXTERNAL_STORAGE,
+      {
+        title: "Storage Permission",
+        message: "This app needs access to your storage to save files.",
+        buttonNeutral: "Ask Me Later",
+        buttonNegative: "Cancel",
+        buttonPositive: "OK",
+      },
+    );
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  }
+  return true; // Assume permission is granted for iOS
+};
+
 
   useEffect(() => {
     retrieveData()
@@ -25,113 +67,118 @@ const HistoryScreen: React.FC = () => {
       });
   }, []);
 
+  // Function to request permission to write to external storage
 
-
-
-  const requestStoragePermission = async () => {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-        {
-          title: 'Storage Permission Required',
-          message: 'This app needs access to your storage to save PDFs.',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        }
-      );
   
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        console.log('Storage permission granted');
-        return true; // Return true if permission is granted
-      } else {
-        console.log('Storage permission denied');
-        return false; // Return false if permission is denied
-      }
-    } catch (err) {
-      console.warn(err);
-      return false; // Return false if there is an error
-    }
-  };
-// Call this function before attempting to save the PDF
-
-
-  // Export to PDF function
   const exportToPDF = async () => {
-    await requestStoragePermission(); // Ensure permission is granted
-    if (historyData.length === 0) {
-      Alert.alert('No Data', 'There is no history data to export.');
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) {
+      Alert.alert("Permission Denied", "Storage permission is required to save the PDF.");
       return;
     }
+      try {
+   
+      const htmlContent = `
+        <div style="font-family: 'Helvetica Neue', sans-serif; color: #333; margin: 20px; border-radius: 10px; overflow: hidden; border: 1px solid #ddd;">
+          <!-- Header -->
+          <header style="background-color: #fd7013; padding: 20px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 28px;">History Data Report</h1>
+          </header>
 
-    const htmlContent = `
-      <div style="font-family: 'Helvetica Neue', sans-serif; color: #333; margin: 20px; border-radius: 10px; overflow: hidden; border: 1px solid #ddd;">
-        <!-- Header -->
-        <header style="background-color: #fd7013; padding: 20px; text-align: center; color: white;">
-          <h1 style="margin: 0; font-size: 28px;">History Data Report</h1>
-        </header>
-  
-        <!-- GCS Severity Info -->
-        <section style="padding: 20px; background-color: #ffffff; border-bottom: 2px solid #fd7013;">
-          <h2 style="color: #fd7013; font-size: 20px;">Glasgow Coma Scale (GCS) Severity Levels</h2>
-          <p style="margin: 8px 0; font-size: 16px;">
-            <strong>Mild:</strong> GCS score 13-15 <br>
-            <strong>Moderate:</strong> GCS score 9-12 <br>
-            <strong>Severe:</strong> GCS score 3-8
-          </p>
-        </section>
-  
-        <!-- Content -->
-        <section style="padding: 20px; background-color: #f9f9f9;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 16px;">
-            <thead>
-              <tr>
-                <th style="border: 1px solid #fd7013; padding: 12px; background-color: #f2f2f2; color: #393e46; text-align: left;">Injury Date & Time</th>
-                <th style="border: 1px solid #fd7013; padding: 12px; background-color: #f2f2f2; color: #393e46; text-align: left;">Severity</th>
-                <th style="border: 1px solid #fd7013; padding: 12px; background-color: #f2f2f2; color: #393e46; text-align: left;">Region</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${historyData.map((item, index) => `
-                <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f7f7f7'};">
-                  <td style="border: 1px solid #ddd; padding: 10px; color: #444;">${new Date(item.injuryDate).toLocaleString()}</td>
-                  <td style="border: 1px solid #ddd; padding: 10px; color: ${item.severity === 'Severe' ? '#d9534f' : (item.severity === 'Moderate' ? '#f0ad4e' : '#5bc0de')}; font-weight: bold;">${item.severity}</td>
-                  <td style="border: 1px solid #ddd; padding: 10px; color: #444;">${item.meshName}</td>
+          <!-- GCS Severity Info -->
+          <section style="padding: 20px; background-color: #ffffff; border-bottom: 2px solid #fd7013;">
+            <h2 style="color: #fd7013; font-size: 20px;">Glasgow Coma Scale (GCS) Severity Levels</h2>
+            <p style="margin: 8px 0; font-size: 16px;">
+              <strong>Mild:</strong> GCS score 13-15 <br>
+              <strong>Moderate:</strong> GCS score 9-12 <br>
+              <strong>Severe:</strong> GCS score 3-8
+            </p>
+          </section>
+
+          <!-- Content -->
+          <section style="padding: 20px; background-color: #f9f9f9;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 16px;">
+              <thead>
+                <tr>
+                  <th style="border: 1px solid #fd7013; padding: 12px; background-color: #f2f2f2; color: #393e46; text-align: left;">Injury Date & Time</th>
+                  <th style="border: 1px solid #fd7013; padding: 12px; background-color: #f2f2f2; color: #393e46; text-align: left;">Severity</th>
+                  <th style="border: 1px solid #fd7013; padding: 12px; background-color: #f2f2f2; color: #393e46; text-align: left;">Region</th>
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </section>
+              </thead>
+              <tbody>
+                ${historyData.map((item, index) => `
+                  <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f7f7f7'};">
+                    <td style="border: 1px solid #ddd; padding: 10px; color: #444;">${new Date(item.injuryDate).toLocaleString()}</td>
+                    <td style="border: 1px solid #ddd; padding: 10px; color: ${item.severity === 'Severe' ? '#d9534f' : (item.severity === 'Moderate' ? '#f0ad4e' : '#5bc0de')}; font-weight: bold;">${item.severity}</td>
+                    <td style="border: 1px solid #ddd; padding: 10px; color: #444;">${item.meshName}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </section>
+
+          <!-- Divider -->
+          <div style="height: 5px; background: linear-gradient(to right, #fd7013, #393e46); margin: 0;"></div>
+
+          <!-- Footer -->
+          <footer style="text-align: center; padding: 15px; background-color: #393e46; color: #ffffff;">
+            <p style="margin: 0; font-size: 14px;">Generated on ${new Date().toLocaleDateString()}</p>
+            <p style="margin: 0; font-size: 12px; color: #cccccc;">This is an automatically generated report</p>
+          </footer>
+        </div>
+      `;
+
+      const pdfFile = await RNHTMLtoPDF.convert({
+        html: htmlContent,
+        fileName: 'HistoryData',
+        base64: false,
+      });
   
-        <!-- Divider -->
-        <div style="height: 5px; background: linear-gradient(to right, #fd7013, #393e46); margin: 0;"></div>
+      const downloadPath = `${RNFS.DownloadDirectoryPath}/HistoryData.pdf`;
   
-        <!-- Footer -->
-        <footer style="text-align: center; padding: 15px; background-color: #393e46; color: #ffffff;">
-          <p style="margin: 0; font-size: 14px;">Generated on ${new Date().toLocaleDateString()}</p>
-          <p style="margin: 0; font-size: 12px; color: #cccccc;">This is an automatically generated report</p>
-        </footer>
-      </div>
-    `;
+      await RNFS.moveFile(pdfFile.filePath, downloadPath);
+      console.log('PDF created:', downloadPath);
+  
+      const fileExists = await RNFS.exists(downloadPath);
+      if (!fileExists) {
+        Alert.alert('Error', 'File not found');
+        return;
+      }
+      // Prepare share options with a non-empty message
+      
+    // Prepare share options with a non-empty message
+        const shareOptions = {
+          title: 'Share PDF',
+          message: 'Here is the PDF file.',
+          url: `file://${downloadPath}`, // Make sure it's a valid path for sharing
+          type: 'application/pdf',
+        };
 
-
-    const downloadPath = `${RNFS.DownloadDirectoryPath}/HistoryData.pdf`; // Saves to the "Downloads" folder
-
-    const options = {
-      html: htmlContent,
-      fileName: 'HistoryData',
-      directory: 'Downloads', // Specifies the Downloads directory
-      filePath: downloadPath, // Path where the file will be saved
-    };
-
-    try {
-      const file = await RNHTMLtoPDF.convert(options);
-      Alert.alert('PDF created', `File saved to: ${file.filePath}`);
-      console.log('PDF created:', file.filePath);
-    } catch (error) {
-      console.error('PDF generation error:', error);
-      Alert.alert('Error', 'Failed to create PDF');
-    }
+  
+       Alert.alert('PDF Created', 'File saved. Do you want to share it?', [
+      {
+        text: 'Share',
+        onPress: async () => {
+          try {
+            // Use Share.open instead of Share.open()
+            await Share.open({
+              title: shareOptions.title,
+              message: shareOptions.message,
+              url: shareOptions.url,
+              type: shareOptions.type,
+            });
+          } catch (error) {
+            console.error('Error sharing PDF:', error);
+            Alert.alert('Error', 'Failed to share the PDF.');
+          }
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  } catch (error) {
+    console.error('Error exporting PDF:', error);
+    Alert.alert('Error', 'Failed to export the PDF. Make sure the app has the necessary permissions.');
+  }
   };
 
   // Check if we need to call exportToPDF

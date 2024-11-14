@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei/native';
 import * as THREE from 'three';
+import { useThree } from '@react-three/fiber'; // Import the useThree hook
 
 interface ModelProps {
   rotationSpeed: number;
@@ -9,23 +10,31 @@ interface ModelProps {
   selectedVertex: any;
   totalGCS: number;
   interpolateColor: (totalGCS: number, min: number, max: number) => string;
+  zoom: number; 
+  onTakeScreenshot: () => void; // New prop to control zoom
 }
 
-const Model: React.FC<ModelProps> = ({ rotationSpeed, onPointerDown, selectedVertex, totalGCS, interpolateColor }) => {
+const Model: React.FC<ModelProps> = ({ rotationSpeed, onPointerDown, selectedVertex, totalGCS, interpolateColor, zoom,  onTakeScreenshot,  }) => {
   const { nodes } = useGLTF(require('../src/head_model_of_a_child.glb'));
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
+  const { camera } = useThree(); // Access camera from the scene
   const [highlightedVertices, setHighlightedVertices] = useState<Set<number>>(new Set());
 
-  // Helper function to apply color to highlighted vertices based on severity
-  const applyColor = () => {
+   // Update the camera zoom based on the zoom prop
+   useEffect(() => {
+    camera.position.set(0, 0, zoom);  // Set camera position based on zoom value
+    camera.updateProjectionMatrix();  // Update camera's projection matrix
+  }, [zoom, camera]);
 
+
+  // Handle color update
+  const applyColor = () => {
     if (meshRef.current) {
       const geometry = meshRef.current.geometry as THREE.BufferGeometry;
       const colors = geometry.attributes.color.array as Float32Array;
-
-      // Apply color only to highlighted vertices
       const color = new THREE.Color(interpolateColor(totalGCS, 1, 15));
+
       highlightedVertices.forEach(vertexIndex => {
         colors[vertexIndex * 3] = color.r;
         colors[vertexIndex * 3 + 1] = color.g;
@@ -41,7 +50,7 @@ const Model: React.FC<ModelProps> = ({ rotationSpeed, onPointerDown, selectedVer
       const geometry = meshRef.current.geometry as THREE.BufferGeometry;
       const colors = new Float32Array(geometry.attributes.position.count * 3);
       for (let i = 0; i < colors.length; i += 3) {
-        colors[i] = 1; // Initial color: white
+        colors[i] = 1;
         colors[i + 1] = 1;
         colors[i + 2] = 1;
       }
@@ -50,7 +59,7 @@ const Model: React.FC<ModelProps> = ({ rotationSpeed, onPointerDown, selectedVer
   }, []);
 
   useEffect(() => {
-    applyColor(); // Update color whenever severity changes
+    applyColor();
   }, [totalGCS, highlightedVertices]);
 
   useEffect(() => {
@@ -103,15 +112,27 @@ const Model: React.FC<ModelProps> = ({ rotationSpeed, onPointerDown, selectedVer
         }
       });
 
-      // Update highlighted vertices and apply color
       setHighlightedVertices(vertexIndices);
       applyColor();
       onPointerDown(event); // Notify parent component
     }
   };
 
+   // Screenshot function
+   const takeScreenshot = () => {
+    if (onTakeScreenshot) {
+      // Call the passed screenshot function if it exists
+      onTakeScreenshot();
+    } else {
+      const renderer = gl; // Use the WebGLRenderer from the scene
+      const canvas = renderer.domElement;
+      const screenshot = canvas.toDataURL("image/png"); // Capture screenshot as base64
+      console.log('Screenshot taken:', screenshot);
+    }
+  };
+
   return (
-    <group ref={groupRef} dispose={null} scale={1.5}>
+    <group ref={groupRef} dispose={null} scale={2.0}>
       <mesh
         ref={meshRef}
         name="Child_head"
@@ -127,6 +148,6 @@ const Model: React.FC<ModelProps> = ({ rotationSpeed, onPointerDown, selectedVer
       />
     </group>
   );
-}
+};
 
 export default Model;

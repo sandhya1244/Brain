@@ -21,7 +21,7 @@ const reverseSeverityMap = {
 const DetailsScreen: React.FC = () => {
   const [barChartData, setBarChartData] = useState(null);
   const [totalSeverityData, setTotalSeverityData] = useState(null);
-  const [pieChartData, setPieChartData] = useState(null);
+  const [pieChartData, setPieChartData] = useState<{ name: string; population: number; color: string; legendFontColor: string; legendFontSize: number; }[]>([]);
   const [totalInjuries, setTotalInjuries] = useState(0);
   const [averageSeverityLabel, setAverageSeverityLabel] = useState('');
   const [timeFrame, setTimeFrame] = useState('month');
